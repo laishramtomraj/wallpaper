@@ -1,0 +1,6 @@
+{
+  "name": "Wallpaper Generator",
+  "description": "Mobile-first AI phone wallpaper generator with vibe-based prompting, 4 variations batching in 9:16 aspect ratio, full-screen lock screen preview, resolution/aspect ratio controls, instant download, and reference image remixing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
