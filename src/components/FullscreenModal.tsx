@@ -15,6 +15,7 @@ import {
   Camera,
   Wifi,
   BatteryMedium,
+  Sliders,
 } from 'lucide-react';
 import { downloadImage, sanitizeFilename } from '../utils/downloadHelper';
 import confetti from 'canvas-confetti';
@@ -27,6 +28,7 @@ interface FullscreenModalProps {
   onClose: () => void;
   onNavigate: (index: number) => void;
   onRemix: (wallpaper: WallpaperItem) => void;
+  onEditWallpaper?: (wallpaper: WallpaperItem) => void;
 }
 
 export const FullscreenModal: React.FC<FullscreenModalProps> = ({
@@ -37,6 +39,7 @@ export const FullscreenModal: React.FC<FullscreenModalProps> = ({
   onClose,
   onNavigate,
   onRemix,
+  onEditWallpaper,
 }) => {
   const [showLockScreenMockup, setShowLockScreenMockup] = useState(false);
   const [currentTime, setCurrentTime] = useState({ time: '09:41', date: 'Thursday, October 24' });
@@ -140,6 +143,19 @@ export const FullscreenModal: React.FC<FullscreenModalProps> = ({
 
         {/* Action icons & Close */}
         <div className="flex items-center gap-2">
+          {onEditWallpaper && (
+            <button
+              id="modal-open-editor-btn"
+              type="button"
+              onClick={() => onEditWallpaper(wallpaper)}
+              className="flex items-center gap-1.5 rounded-full border border-[#d4a373]/40 bg-[#d4a373]/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#d4a373] backdrop-blur-md hover:bg-[#d4a373] hover:text-black transition-all"
+              title="Open in Wallpaper Editor"
+            >
+              <Sliders className="h-3.5 w-3.5" />
+              <span>Edit</span>
+            </button>
+          )}
+
           <button
             id="info-toggle-btn"
             type="button"
@@ -294,14 +310,27 @@ export const FullscreenModal: React.FC<FullscreenModalProps> = ({
           ))}
         </div>
 
-        {/* Primary Download & Remix Action Buttons */}
-        <div className="flex items-center justify-center gap-3 w-full max-w-md">
+        {/* Primary Edit, Remix & Download Action Buttons */}
+        <div className="flex items-center justify-center gap-2.5 w-full max-w-md">
+          {/* Edit Studio Button */}
+          {onEditWallpaper && (
+            <button
+              id="modal-bottom-edit-btn"
+              type="button"
+              onClick={() => onEditWallpaper(wallpaper)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-md px-3.5 py-3.5 text-[11px] font-bold uppercase tracking-widest text-white shadow-lg transition-all hover:border-[#d4a373] hover:bg-white/20 active:scale-[0.98]"
+            >
+              <Sliders className="h-3.5 w-3.5 text-[#d4a373]" />
+              <span>Edit</span>
+            </button>
+          )}
+
           {/* Remix Button */}
           <button
             id="modal-remix-btn"
             type="button"
             onClick={handleRemixClick}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-md px-5 py-3.5 text-[11px] font-bold uppercase tracking-widest text-white shadow-lg transition-all hover:bg-white/20 active:scale-[0.98]"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-md px-3.5 py-3.5 text-[11px] font-bold uppercase tracking-widest text-white shadow-lg transition-all hover:bg-white/20 active:scale-[0.98]"
           >
             <RefreshCw className="h-3.5 w-3.5 text-[#d4a373]" />
             <span>Remix</span>
@@ -312,12 +341,12 @@ export const FullscreenModal: React.FC<FullscreenModalProps> = ({
             id="modal-download-btn"
             type="button"
             onClick={handleDownload}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3.5 text-[11px] font-bold uppercase tracking-widest text-black shadow-lg transition-all hover:bg-[#d4a373] hover:text-black active:scale-[0.98]"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-white px-4 py-3.5 text-[11px] font-bold uppercase tracking-widest text-black shadow-lg transition-all hover:bg-[#d4a373] hover:text-black active:scale-[0.98]"
           >
             {downloadSuccess ? (
               <>
                 <Check className="h-4 w-4 text-black" />
-                <span>Downloaded!</span>
+                <span>Saved!</span>
               </>
             ) : (
               <>

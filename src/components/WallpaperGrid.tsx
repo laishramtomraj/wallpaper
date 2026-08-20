@@ -1,6 +1,6 @@
 import React from 'react';
 import { WallpaperItem } from '../types';
-import { Download, RefreshCw, Maximize2, Sparkles, Layers } from 'lucide-react';
+import { Download, RefreshCw, Maximize2, Sparkles, Layers, Sliders } from 'lucide-react';
 import { downloadImage, sanitizeFilename } from '../utils/downloadHelper';
 
 interface WallpaperGridProps {
@@ -8,6 +8,7 @@ interface WallpaperGridProps {
   isGenerating: boolean;
   onSelectWallpaper: (wallpaper: WallpaperItem, index: number) => void;
   onRemix: (wallpaper: WallpaperItem) => void;
+  onEditWallpaper?: (wallpaper: WallpaperItem) => void;
   aspectRatio: string;
   generationProgressText?: string;
 }
@@ -17,6 +18,7 @@ export const WallpaperGrid: React.FC<WallpaperGridProps> = ({
   isGenerating,
   onSelectWallpaper,
   onRemix,
+  onEditWallpaper,
   aspectRatio,
   generationProgressText,
 }) => {
@@ -55,6 +57,13 @@ export const WallpaperGrid: React.FC<WallpaperGridProps> = ({
   const handleQuickRemix = (e: React.MouseEvent, wp: WallpaperItem) => {
     e.stopPropagation();
     onRemix(wp);
+  };
+
+  const handleQuickEdit = (e: React.MouseEvent, wp: WallpaperItem) => {
+    e.stopPropagation();
+    if (onEditWallpaper) {
+      onEditWallpaper(wp);
+    }
   };
 
   if (isGenerating) {
@@ -165,6 +174,17 @@ export const WallpaperGrid: React.FC<WallpaperGridProps> = ({
                     {wallpaper.variationLabel || `Variation ${index + 1}`}
                   </span>
                   <div className="flex items-center gap-1">
+                    {onEditWallpaper && (
+                      <button
+                        id={`card-edit-btn-${index}`}
+                        type="button"
+                        onClick={(e) => handleQuickEdit(e, wallpaper)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/80 text-[#ccc] backdrop-blur-md transition-colors hover:border-[#d4a373] hover:bg-[#d4a373] hover:text-black"
+                        title="Edit / Customize wallpaper"
+                      >
+                        <Sliders className="h-3 w-3" />
+                      </button>
+                    )}
                     <button
                       id={`card-remix-btn-${index}`}
                       type="button"
@@ -179,7 +199,7 @@ export const WallpaperGrid: React.FC<WallpaperGridProps> = ({
                       type="button"
                       onClick={(e) => handleQuickDownload(e, wallpaper)}
                       className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-white text-black backdrop-blur-md transition-colors hover:bg-[#d4a373] hover:text-black"
-                      title="Download image"
+                      title="Download image to device"
                     >
                       <Download className="h-3 w-3" />
                     </button>

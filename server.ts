@@ -217,6 +217,149 @@ async function startServer() {
     }
   });
 
+  // Dedicated AI Inpainting & Magic Edit endpoint
+  app.post('/api/edit-wallpaper', async (req, res) => {
+    try {
+      const {
+        image,
+        instruction,
+        aspectRatio = '9:16',
+        imageSize = '1K',
+        model = 'gemini-3-pro-image-preview',
+      } = req.body;
+
+      if (!image || typeof image !== 'string') {
+        res.status(400).json({ error: 'Source wallpaper image is required for editing.' });
+        return;
+      }
+
+      if (!instruction || typeof instruction !== 'string' || !instruction.trim()) {
+        res.status(400).json({ error: 'Edit instruction is required.' });
+        return;
+      }
+
+      const rawInstruction = instruction.trim();
+      const ai = getGeminiClient();
+
+      // Convert image to inlineData
+      let imageInlineData: { data: string; mimeType: string } | null = null;
+      const matches = image.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (matches) {
+        imageInlineData = {
+          mimeType: matches[1],
+          data: matches[2],
+        };
+      } else if (image.startsWith('http://') || image.startsWith('https://')) {
+        try {
+          const fetchRes = await fetch(image);
+          const arrayBuf = await fetchRes.arrayBuffer();
+          const base64 = Buffer.from(arrayBuf).toString('base64');
+          const contentType = fetchRes.headers.get('content-type') || 'image/png';
+          imageInlineData = {
+            mimeType: contentType,
+            data: base64,
+          };
+        } catch (fetchErr) {
+          console.error('Failed to fetch remote image for editing:', fetchErr);
+        }
+      } else if (image.length > 50) {
+        imageInlineData = {
+          mimeType: 'image/png',
+          data: image,
+        };
+      }
+
+      if (!imageInlineData) {
+        res.status(400).json({ error: 'Could not parse image data for editing.' });
+        return;
+      }
+
+      let targetModel = model || 'gemini-3-pro-image-preview';
+      const validAspectRatios = ['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9'];
+      const finalAspectRatio = validAspectRatios.includes(aspectRatio) ? aspectRatio : '9:16';
+      const validSizes = ['1K', '2K', '4K'];
+      const finalImageSize = validSizes.includes(imageSize) ? imageSize : '1K';
+
+      const promptText = `You are an expert aesthetic wallpaper visual artist. Modify the provided phone wallpaper image according to this instruction: "${rawInstruction}". Preserve key visual elements and wallpaper composition suitable for ${finalAspectRatio} portrait mobile screen, seamlessly applying the changes with ultra high aesthetic detail, rich lighting, and no watermarks or unwanted text.`;
+
+      const parts: any[] = [
+        {
+          inlineData: {
+            data: imageInlineData.data,
+            mimeType: imageInlineData.mimeType,
+          },
+        },
+        { text: promptText },
+      ];
+
+      const config: any = {
+        imageConfig: {
+          aspectRatio: finalAspectRatio,
+          imageSize: finalImageSize,
+        },
+      };
+
+      console.log(`Editing wallpaper with instruction: "${rawInstruction.slice(0, 60)}..." using ${targetModel}`);
+
+      try {
+        let response = await ai.models.generateContent({
+          model: targetModel,
+          contents: { parts },
+          config,
+        });
+
+        let partsList = response.candidates?.[0]?.content?.parts || [];
+        for (const part of partsList) {
+          if (part.inlineData && part.inlineData.data) {
+            const mime = part.inlineData.mimeType || 'image/png';
+            res.json({
+              success: true,
+              imageUrl: `data:${mime};base64,${part.inlineData.data}`,
+              instruction: rawInstruction,
+              aspectRatio: finalAspectRatio,
+              imageSize: finalImageSize,
+              model: targetModel,
+            });
+            return;
+          }
+        }
+
+        // Retry with flash model if not already using it
+        if (targetModel !== 'gemini-3.1-flash-image-preview') {
+          console.log('Retrying edit with gemini-3.1-flash-image-preview...');
+          response = await ai.models.generateContent({
+            model: 'gemini-3.1-flash-image-preview',
+            contents: { parts },
+            config,
+          });
+          partsList = response.candidates?.[0]?.content?.parts || [];
+          for (const part of partsList) {
+            if (part.inlineData && part.inlineData.data) {
+              const mime = part.inlineData.mimeType || 'image/png';
+              res.json({
+                success: true,
+                imageUrl: `data:${mime};base64,${part.inlineData.data}`,
+                instruction: rawInstruction,
+                aspectRatio: finalAspectRatio,
+                imageSize: finalImageSize,
+                model: 'gemini-3.1-flash-image-preview',
+              });
+              return;
+            }
+          }
+        }
+
+        res.status(500).json({ error: 'The AI model did not return an updated image. Please try a different edit instruction.' });
+      } catch (genErr: any) {
+        console.error('Error during image edit:', genErr);
+        res.status(500).json({ error: genErr?.message || 'Failed to edit wallpaper.' });
+      }
+    } catch (err: any) {
+      console.error('Server error in /api/edit-wallpaper:', err);
+      res.status(500).json({ error: err?.message || 'Server error editing wallpaper.' });
+    }
+  });
+
   // Prompt vibe expander helper
   app.post('/api/expand-vibe', async (req, res) => {
     try {

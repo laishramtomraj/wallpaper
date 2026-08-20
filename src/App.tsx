@@ -10,6 +10,7 @@ import { SettingsBar } from './components/SettingsBar';
 import { VibeComposer } from './components/VibeComposer';
 import { WallpaperGrid } from './components/WallpaperGrid';
 import { FullscreenModal } from './components/FullscreenModal';
+import { WallpaperEditorModal } from './components/WallpaperEditorModal';
 import { HistoryDrawer } from './components/HistoryDrawer';
 import { STARTER_WALLPAPERS } from './data/starterWallpapers';
 import { AlertCircle, CheckCircle2, Sparkles, RefreshCw } from 'lucide-react';
@@ -31,6 +32,10 @@ export default function App() {
 
   const [fullscreenIndex, setFullscreenIndex] = useState<number>(0);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState<boolean>(false);
+
+  // Wallpaper Editor Modal State
+  const [isEditorOpen, setIsEditorOpen] = useState<boolean>(false);
+  const [editingWallpaper, setEditingWallpaper] = useState<WallpaperItem | null>(null);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
@@ -140,6 +145,27 @@ export default function App() {
     }
   };
 
+  // User opens the wallpaper editor
+  const handleOpenEditor = (wallpaper: WallpaperItem | null) => {
+    if (!wallpaper) return;
+    setEditingWallpaper(wallpaper);
+    setIsEditorOpen(true);
+  };
+
+  // When changes are saved/applied as an in-place update
+  const handleUpdateCurrentWallpaper = (updatedWallpaper: WallpaperItem) => {
+    setCurrentWallpapers((prev) =>
+      prev.map((wp) => (wp.id === updatedWallpaper.id ? updatedWallpaper : wp))
+    );
+    showToast('success', 'Wallpaper modifications applied!');
+  };
+
+  // When saved as a new wallpaper variation in the batch
+  const handleSaveNewVariation = (newWallpaper: WallpaperItem) => {
+    setCurrentWallpapers((prev) => [newWallpaper, ...prev]);
+    showToast('success', 'Saved as new wallpaper variation!');
+  };
+
   // User taps an image to see it full screen
   const handleSelectWallpaper = (wallpaper: WallpaperItem, index: number) => {
     setFullscreenIndex(index);
@@ -239,6 +265,7 @@ export default function App() {
           isGenerating={isGenerating}
           onSelectWallpaper={handleSelectWallpaper}
           onRemix={handleRemix}
+          onEditWallpaper={handleOpenEditor}
           aspectRatio={aspectRatio}
           generationProgressText={progressMessage}
         />
@@ -254,7 +281,7 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Fullscreen Modal View with Phone Lockscreen overlay, Download, Remix */}
+      {/* Fullscreen Modal View with Phone Lockscreen overlay, Download, Remix, Edit */}
       <FullscreenModal
         wallpaper={currentWallpapers[fullscreenIndex] || null}
         allWallpapers={currentWallpapers}
@@ -263,6 +290,22 @@ export default function App() {
         onClose={() => setIsFullscreenOpen(false)}
         onNavigate={setFullscreenIndex}
         onRemix={handleRemix}
+        onEditWallpaper={(wp) => {
+          setIsFullscreenOpen(false);
+          handleOpenEditor(wp);
+        }}
+      />
+
+      {/* Wallpaper Studio & Editor Modal (Adjustments, AI Inpainting/Edits, Text Overlays, High-Res Export) */}
+      <WallpaperEditorModal
+        wallpaper={editingWallpaper}
+        isOpen={isEditorOpen}
+        onClose={() => {
+          setIsEditorOpen(false);
+          setEditingWallpaper(null);
+        }}
+        onUpdateCurrent={handleUpdateCurrentWallpaper}
+        onSaveAsNew={handleSaveNewVariation}
       />
 
       {/* History Drawer */}
